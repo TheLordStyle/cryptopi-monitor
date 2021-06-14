@@ -43,6 +43,7 @@ If you want to alter the time between api checks, edit the following lines but m
 Save and run the python script using sudo python lcd.py - see if it all works!
 
 Possible future improvements:
+- [ ] Add in error checking 
 - [ ] Work out how to query coins/tokens in a wallet for automatic updating of your value
 - [ ] Better positioning on the screen to support screen sizes other than 320x240
 - [ ] Check multiple coins/tokens and cycle through them all
