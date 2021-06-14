@@ -17,7 +17,7 @@ Monitor cryptocurrency stats and compare it to your own wallet, displaying the d
 * A CoinMarketCap API key, you can get a free tier one at https://coinmarketcap.com/api/
 
 <b>Getting setup:</b></br>
-* First off, connect your LCD screen and set it up as a 'Raw Frame Buffer Device' so that you can interact with it using pygameas a separate display. Adafruit have a good script/guide for using one of their devices: https://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi/easy-install-2</br>
+* First off, connect your LCD screen and set it up as a 'Raw Frame Buffer Device' so that you can interact with it using pygameas a seperate display. Adafruit have a good script/guide for using one of their devices: https://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi/easy-install-2</br>
 * Make sure you have Python 3 installed on your Raspberry Pi</br>
 * Install the following Python modules:</br>
 	Pygame https://www.pygame.org/wiki/GettingStarted : </br>
