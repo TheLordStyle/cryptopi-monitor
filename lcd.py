@@ -38,7 +38,6 @@ class Crypto_coin:
         self.coins_held = coins_held
         self.purchase_value = purchase_value
         self.api_currency_type = api_currency_type
-        #self.api_currency_type_symbol = CurrencySymbols.get_symbol(api_currency_type)
         self.name = None # name of the coin
         self.logo_url = None # stores the logo url
         self.logo_img = None # stores the download logo image
@@ -52,19 +51,18 @@ class Crypto_coin:
         self.percent_change_60d = None
         self.percent_change_90d = None
         self.circulating_supply = None
-        self.cmc_rank = None
+        self.cmc_rank = None # CoinMarketCap rank
         self.old_price_value = None
         self.current_value = None 
-        self.current_value_str = None # string version of the current value
         self.current_total_value = 0.0 
-        self.current_total_value_str = None # string version of the current total value
-        self.volume_24h = None 
+        self.volume_24h = None # how much value of coin/token has been sold in the alst 24 hours
         self.volume_24h_str = None # string version of the current volume
+        self.token_address = None # the token address value
         
-    def api_updated(self, new_api_data):
+    def cmc_quotes_api_update(self, new_api_data):
         self.api_data = new_api_data
-        print("Api quote dump:")
-        print(json.dumps(self.api_data.data))
+        #print("Api quote dump:")
+        #print(json.dumps(self.api_data.data))
         self.market_cap = json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["market_cap"])
         self.percent_change_1h = float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["percent_change_1h"]))
         self.percent_change_24h = float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["percent_change_24h"]))
@@ -73,42 +71,41 @@ class Crypto_coin:
         self.percent_change_60d = float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["percent_change_60d"]))
         self.percent_change_90d = float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["percent_change_90d"]))
         self.circulating_supply = json.dumps(self.api_data.data[self.symbol]["circulating_supply"])
-        #self.icon = None
-        self.name = json.dumps(self.api_data.data[self.symbol]["name"])
+        self.name = json.dumps(self.api_data.data[self.symbol]["name"]).strip('\"')
         self.cmc_rank = json.dumps(self.api_data.data[self.symbol]["cmc_rank"])
         self.old_price_value = self.current_value
         self.current_value = ("{:.12f}".format(float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["price"]))))
-        self.current_value_str = str(self.current_value)
-        self.current_total_value = ("{:.2f}".format(my_safe_moon * float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["price"]))))
-        self.current_total_value_str = str(self.current_total_value)
+        self.current_total_value = ("{:.2f}".format(self.coins_held * float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["price"]))))
         self.volume_24h = float(json.dumps(self.api_data.data[self.symbol]["quote"][self.api_currency_type]["volume_24h"]))
         self.volume_24h_str = "24h vol: " + str(millify(self.volume_24h))   
 
-    def info_updated(self, new_info_api_data):
+    def cmc_info_api_update(self, new_info_api_data):
         self.api_info_data = new_info_api_data
-        print("Api info dump:")
-        print(json.dumps(self.api_info_data.data))
-        self.logo_url = json.dumps(self.api_info_data.data[self.symbol]["logo"])
-        self.logo_url = self.logo_url.strip('\"')
+        #print("Api info dump:")
+        #print(json.dumps(self.api_info_data.data))
+        self.token_address = json.dumps(self.api_info_data.data[self.symbol]["platform"]["token_address"]).strip('\"')
+        self.logo_url = json.dumps(self.api_info_data.data[self.symbol]["logo"]).strip('\"')
         r = requests.get(str(self.logo_url))
         self.logo_img = pygame.image.load(io.BytesIO(r.content))
         
-
-cmc = CoinMarketCapAPI('enter-your-cmc-api-here')
-coin_symbol = 'SAFEMOON'
+    def bscscan_wallet_api_update(self):
+        bsc_url = "https://api.bscscan.com/api?module=account&action=tokenbalance&tag=latest&contractaddress=" + self.token_address + "&apikey=" + bscscan_apikey + "&address=" + my_wallet_address
+        self.coins_held = (float(requests.get(bsc_url).json()["result"]) * 0.000000001)
+        
+coin_symbol = 'SAFEMOON' # the symbol of the coin you want details of
 my_safe_moon = 10000000 # how much safemoon do I own
 my_money_spent = 10.00 # how much money i've spent
-real_currency = 'GBP'
+real_currency = 'GBP' # enter your currency type here - for example USD for US dollars
 
-crypto = Crypto_coin(symbol=coin_symbol, coins_held=my_safe_moon, purchase_value=my_money_spent, api_currency_type=real_currency)
+cmc = CoinMarketCapAPI('enter-your-api-ley-here') # enter in your CoinMarketCap API key here, free account rate limit is 333 api calls a days
+bscscan_apikey = '123456789' # enter in your BscScan API key here, if you leave this as the default number it will not query your wallet.
+my_wallet_address = '0x1234567890' # enter in your TrustWallet/SafeMoon wallet public address. Never give out your recovery key to anyone and do not enter it here
 
-sleep_time = 1
-api_info_next_check = datetime.datetime.now()
-api_info_next_check_query_time = 28800 # time in seconds between coin api info queries
-api_data_next_check = datetime.datetime.now()
-api_data_query_time = 360 # time in seconds between api queries
-
-os.putenv('SDL_FBDEV', '/dev/fb1')
+sleep_time = 1 # sleep time between screen updates
+api_cmc_info_query_time = 28800 # time in seconds between coin api info queries
+api_cmc_quotes_query_time = 360 # time in seconds between api quotes queries
+api_cmc_info_next_check = datetime.datetime.now() # mark it so the CMC info API needs to be updated now
+api_cmc_quotes_next_check = datetime.datetime.now() # mark it so the CMC quotes API needs to be updated now
 
 #Colours
 LCD_WHITE = (255,255,255)
@@ -118,11 +115,12 @@ LCD_BLUE = (0,0,255)
 LCD_BLACK = (0,0,0)
 LCD_LIGHT_YELLOW = (255,255,51)
 
-
-
+crypto = Crypto_coin(symbol=coin_symbol, coins_held=my_safe_moon, purchase_value=my_money_spent, api_currency_type=real_currency)
+os.putenv('SDL_FBDEV', '/dev/fb1')
 pygame.init()
 pygame.mouse.set_visible(False)
 lcd = pygame.display.set_mode((320, 240))
+
 # fill the screen black
 lcd.fill((0,0,0))
 pygame.display.update()
@@ -137,19 +135,23 @@ while True:
     now = datetime.datetime.now()
     
     #check is the coin info api should be updated
-    if now > api_info_next_check:
-        crypto.info_updated(cmc.cryptocurrency_info(symbol=crypto.symbol))
-        api_info_next_check = now + datetime.timedelta(seconds = api_info_next_check_query_time) # update when the next info api query should happen
+    if now > api_cmc_info_next_check:
+        crypto.cmc_info_api_update(cmc.cryptocurrency_info(symbol=crypto.symbol))
+        api_cmc_info_next_check = now + datetime.timedelta(seconds = api_cmc_info_query_time) # update when the next info api query should happen
     
     # check if the price data api should be refreshed
-    if now > api_data_next_check:
-        crypto.api_updated(cmc.cryptocurrency_quotes_latest(symbol=crypto.symbol, convert=crypto.api_currency_type)) # load the latest api data into the crypto coin
-        print ("Coin: " + str(crypto.name) + "  current total value is: " + str(crypto.current_total_value_str) + "  coin price is : " + str(crypto.current_value_str) + "  CMC rank = " + str(crypto.cmc_rank) + ".")
-        api_data_next_check = now + datetime.timedelta(seconds = api_data_query_time) # update when the next api data query should happen
-        print ("Next API query is at: " + str(api_data_next_check))
+    if now > api_cmc_quotes_next_check:
+        # update the wallet contents if a BscScan API has been provided
+        if bscscan_apikey is not '123456789':
+            crypto.bscscan_wallet_api_update() # update the blockchain wallet details from BscScan
+            
+        crypto.cmc_quotes_api_update(cmc.cryptocurrency_quotes_latest(symbol=crypto.symbol, convert=crypto.api_currency_type)) # load the latest api data into the crypto coin
+        print ("\nCoin: " + str(crypto.name) + "\nPrice per coin is: " + str(crypto.current_value) + "\nCurrent wallet holds: " + "{:,.4f}".format(crypto.coins_held) + "\nCurrent wallet value: " + str(crypto.current_total_value) + " " + str(crypto.api_currency_type))
+        api_cmc_quotes_next_check = now + datetime.timedelta(seconds = api_cmc_quotes_query_time) # update when the next api data query should happen
+        print ("Next API query is at: " + str(api_cmc_quotes_next_check) + "\n")
     
         # coin name at the top
-        text_coin_name = font_small.render('%s'%crypto.name.strip('\"'), True, LCD_WHITE)
+        text_coin_name = font_small.render('%s'%crypto.name, True, LCD_WHITE)
         rect_coin_name = text_coin_name.get_rect(center=(160+32,16))
         # coin symbol
         text_coin_symbol = font_small.render('(%s)'%crypto.symbol, True, LCD_WHITE)
@@ -157,15 +159,14 @@ while True:
 
         #work out which is longer, the name or symbol
         image_name_length = text_coin_name.get_width() if text_coin_name.get_width() > text_coin_symbol.get_width() else text_coin_symbol.get_width()
-        #print (image_name_length)
         rect_coin_image = crypto.logo_img.get_rect(topleft=(160 - image_name_length,2))
 
         #owned total value top middle
-        text_total_value = font_big.render('%s'%crypto.current_total_value_str, True, LCD_GREEN if float(crypto.current_total_value) > float(crypto.purchase_value) else LCD_RED)
+        text_total_value = font_big.render('%s'%crypto.current_total_value, True, LCD_GREEN if float(crypto.current_total_value) > float(crypto.purchase_value) else LCD_RED)
         rect_total_value = text_total_value.get_rect(center=(160,100))
         
         #coin current value second middle
-        text_coin_value = font_medium.render('%s'%crypto.current_value_str, True, LCD_GREEN if crypto.current_value > crypto.old_price_value else LCD_RED)
+        text_coin_value = font_medium.render('%s'%crypto.current_value, True, LCD_GREEN if crypto.current_value > crypto.old_price_value else LCD_RED)
         rect_coin_value = text_coin_value.get_rect(center=(160,140))
         
         # currency type bottom right
@@ -202,7 +203,7 @@ while True:
         text_60d_change = font_small.render('%f'%crypto.percent_change_60d, True, LCD_GREEN if crypto.percent_change_60d > 0 else LCD_RED)
         rect_60d_change = text_60d_change.get_rect(midleft=(54,230))
 
-    bar_length = int(translate(int((api_data_next_check-now).total_seconds()), api_data_query_time, 0, 0, 320)) # calculate how long the bar should be for showing the time left until an API refresh
+    bar_length = int(translate(int((api_cmc_quotes_next_check-now).total_seconds()), api_cmc_quotes_query_time, 0, 0, 320)) # calculate how long the bar should be for showing the time left until an API refresh
     
     lcd.fill((0,0,0)) # clear the screen
     
